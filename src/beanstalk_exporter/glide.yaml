@@ -1,0 +1,5 @@
+package: beanstalk_exporter
+import:
+- package: github.com/kr/beanstalk
+- package: github.com/prometheus/client_golang
+  version: ^0.8.0

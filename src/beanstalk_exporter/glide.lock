@@ -1,0 +1,8 @@
+hash: d35e54505ab578c80048f708543ffd0eec48b8c8832a6f6d33afe2c3bbe26479
+updated: 2016-11-19T17:28:49.003002975+08:00
+imports:
+- name: github.com/kr/beanstalk
+  version: e99e1a384e4ace0401329ea37f702a2904990f91
+- name: github.com/prometheus/client_golang
+  version: c5b7fccd204277076155f10851dad72b76a49317
+testImports: []
