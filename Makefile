@@ -44,10 +44,10 @@ package: install
 	$(MAKE) clean
 
 run:
-	@go run -ldflags "$(GO_LDFLAGS)" "$(CURDIR)/src/$(PROGRAM_NAME)/main.go"
+	@go run -ldflags "$(GO_LDFLAGS)" "$(CURDIR)/src/$(PROGRAM_NAME)/main.go" $(ARGS)
 
 lint:
 	@golint
 
 test:
-	@go test
+	@go test $(PROGRAM_NAME)
