@@ -18,7 +18,7 @@ GOPATH := $(CURDIR)
 GOBIN := $(CURDIR)/$(BIN_DIR)
 # golang build args
 GO_LDFLAGS := -X main.VERSION=$(VERSION) -X main.BUILD_DATE=$(BUILD_DATE) -X \
-	main.REVISION=$(COMMIT_SHA1) -X main.GIT_BRANCH=$(GIT_BRANCH)
+	main.REVISION=$(REVISION) -X main.GIT_BRANCH=$(GIT_BRANCH)
 
 export GOPATH
 export GOBIN

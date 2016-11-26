@@ -6,16 +6,14 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
+	"runtime"
+	"strconv"
+	"strings"
 
-	//"github.com/kr/beanstalk"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"strings"
-	//"beanstalk_exporter/exporter"
-	"strconv"
+
 	"beanstalk_exporter/exporter"
-	"runtime"
 )
 
 const (
@@ -56,11 +54,11 @@ func indexPageHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func normalizeAddrs(addrs []string) ([]string, error) {
-	normalized := make([]string, len(addrs))
+	normalized := make([]string, 0)
 	for _, addr := range addrs {
 		parts := strings.Split(addr, ":")
 		if len(parts) == 1 {
-			normalized = append(normalized, parts[0] + strconv.Itoa(BEANSTALKD_DEFAULT_PORT))
+			normalized = append(normalized, parts[0] + ":" + strconv.Itoa(BEANSTALKD_DEFAULT_PORT))
 		} else if len(parts) == 2 {
 			normalized = append(normalized, addr)
 		} else {
@@ -71,9 +69,19 @@ func normalizeAddrs(addrs []string) ([]string, error) {
 	return normalized, nil
 }
 
+func removeEmptyString(array []string) []string {
+	newArray := make([]string, 0)
+	for _, str := range array {
+		if len(str) != 0 {
+			newArray = append(newArray, str)
+		}
+	}
+	return newArray
+}
+
 func main() {
 	flag.Parse()
-	log.Printf(
+	fmt.Printf(
 		"Beanstalk Metrics Exporter %s:\n  build date: %s\n  revision: %s\n\n",
 		VERSION, BUILD_DATE, REVISION,
 	)
@@ -91,13 +99,14 @@ func main() {
 		log.Fatal(err)
 		os.Exit(1)
 	}
-	tubes := strings.Split(*tubeNames, *tubeSep)
-	log.Printf("tubes: %s\n", tubes)
+	tubes := removeEmptyString(strings.Split(*tubeNames, *tubeSep))
+	log.Printf("addrs: %v\n", addrs)
+	log.Printf("tubes: %v\n", tubes)
 
 
 	buildInfo := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "beanstalk_exporter_build_info",
-		Help: "",
+		Help: "beanstalk_exporter_build_info",
 	}, []string{"version", "revision", "goversion", "branch", "build_date"})
 
 	prometheus.MustRegister(buildInfo)

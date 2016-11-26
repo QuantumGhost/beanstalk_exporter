@@ -46,19 +46,27 @@ var (
 	tubeCmds = []string{"delete", "pause-tube"}
 	metricConfigs = map[string]metricConfig {
 		"current_job": metricConfig{
-			Name: "current_job", Help: "",
+			Name: "current_job",
+			// TODO(QuantumGhost): change help text
+			Help: "current_job",
 			Type: gaugeType, Labels: []string{"addr", "state"},
 		},
 		"tube_current_job": metricConfig{
-			Name: "tube_current_job", Help: "",
+			Name: "tube_current_job",
+			// TODO(QuantumGhost): change help text
+			Help: "tube_current_job",
 			Type: gaugeType, Labels: []string{"addr", "tube", "state"},
 		},
 		"cmds_total": metricConfig{
-			Name: "cmds_total", Help: "",
+			Name: "cmds_total",
+			// TODO(QuantumGhost): change help text
+			Help: "tube_current_job",
 			Type: counterType, Labels: []string{"addr", "cmd"},
 		},
 		"tube_cmds_total": metricConfig{
-			Name: "tube_cmds_total", Help: "",
+			Name: "tube_cmds_total",
+			// TODO(QuantumGhost): change help text
+			Help: "tube_current_job",
 			Type: counterType, Labels: []string{"addr", "tube", "cmd"},
 		},
 	}
@@ -263,7 +271,7 @@ func (e *Exporter) scrape(scrapes chan<- scrapeResult) {
 	for _, addr := range e.beanstalkd {
 		conn, err := beanstalk.Dial(proto, addr)
 		if err != nil {
-			log.Printf("beanstalkd error: %s", err)
+			log.Panicf("Error while connecting to %s: %s", addr, err)
 			errCount++
 			continue
 		}
@@ -271,7 +279,7 @@ func (e *Exporter) scrape(scrapes chan<- scrapeResult) {
 
 		stats, err := conn.Stats()
 		if err != nil {
-			log.Printf("beanstalkd error: %s", err)
+			log.Printf("Error while fetching stats: %s", err)
 			errCount++
 			continue
 		}
@@ -281,7 +289,7 @@ func (e *Exporter) scrape(scrapes chan<- scrapeResult) {
 			tube := &beanstalk.Tube{Conn: conn, Name: tubeName}
 			stats, err = tube.Stats()
 			if err != nil {
-				log.Printf("beanstalkd error: %s", err)
+				log.Printf("Error while fetching stats for tube %s: %s", tubeName, err)
 				errCount++
 				continue
 			}
