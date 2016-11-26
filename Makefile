@@ -4,7 +4,7 @@ BIN_DIR := bin
 DIST_DIR := dist
 
 # build version info
-VERSION := v0.0.1
+VERSION := v0.1
 BUILD_DATE := $(shell date -u "+%FT%T+00:00")
 REVISION := $(shell git rev-parse HEAD)
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
@@ -22,6 +22,8 @@ GO_LDFLAGS := -X main.VERSION=$(VERSION) -X main.BUILD_DATE=$(BUILD_DATE) -X \
 
 export GOPATH
 export GOBIN
+export GOOS
+export GOARCH
 
 
 .PHONY: clean clean-dist install build package run lint test
