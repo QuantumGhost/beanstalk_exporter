@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 	"strconv"
-	"strings"
 
 	"github.com/kr/beanstalk"
 	"github.com/prometheus/client_golang/prometheus"
@@ -32,31 +31,35 @@ const (
 )
 
 const (
-	jobStatus = []string{"buried", "delayed", "ready", "reserved", "urgent"}
-	serverCmds = []string{}
-	tubeCmds = []string{}
-	currentJobNames = []string{
-		"current-jobs-urgent", "current-jobs-ready",
-		"current-jobs-reserved", "current-jobs-delayed",
-		"current-jobs-buried",
-	}
 	currentJobPrefix = "current-jobs-"
+	cmdPrefix = "cmd-"
+)
+
+var (
+	jobState = []string{"buried", "delayed", "ready", "reserved", "urgent"}
+	serverCmds = []string{
+		"put", "peek", "peek-ready", "peek-delayed", "peek-buried", "reserve",
+		"reserve-with-timeout", "delete", "release", "use", "watch", "ignore",
+		"bury", "kick", "touch", "stats", "stats-job", "stats-tube",
+		"list-tubes", "list-tube-used", "list-tubes-watched", "pause-tube",
+	}
+	tubeCmds = []string{"delete", "pause-tube"}
 	metricConfigs = map[string]metricConfig {
-		"current_job": {
+		"current_job": metricConfig{
 			Name: "current_job", Help: "",
-			Type: gaugeType, Labels: {"addr", "state"},
+			Type: gaugeType, Labels: []string{"addr", "state"},
 		},
-		"tube_current_job": {
+		"tube_current_job": metricConfig{
 			Name: "tube_current_job", Help: "",
-			Type: gaugeType, Labels: {"addr", "tube", "state"},
+			Type: gaugeType, Labels: []string{"addr", "tube", "state"},
 		},
-		"cmds_total": {
+		"cmds_total": metricConfig{
 			Name: "cmds_total", Help: "",
-			Type: counterType, Labels: {"addr", "cmd"},
+			Type: counterType, Labels: []string{"addr", "cmd"},
 		},
-		"tube_cmds_total": {
+		"tube_cmds_total": metricConfig{
 			Name: "tube_cmds_total", Help: "",
-			Type: counterType, Labels: {"addr", "tube", "cmd"},
+			Type: counterType, Labels: []string{"addr", "tube", "cmd"},
 		},
 	}
 )
@@ -112,7 +115,7 @@ func NewExporter(addrs []string, namespace string, tubes []string) (*Exporter, e
 
 	e.initGauges()
 	e.initCounters()
-	return e, nil
+	return &e, nil
 }
 
 func (e *Exporter) initGauges() {
@@ -267,26 +270,22 @@ func (e *Exporter) scrape(scrapes chan<- scrapeResult) {
 		defer conn.Close()
 
 		stats, err := conn.Stats()
-		if err == nil {
-			err = e.extractFromStats(stats, addr, scrapes)
-		}
 		if err != nil {
 			log.Printf("beanstalkd error: %s", err)
 			errCount++
 			continue
 		}
+		e.extractFromStats(stats, addr, scrapes)
 
 		for _, tubeName := range e.tubes {
 			tube := &beanstalk.Tube{Conn: conn, Name: tubeName}
 			stats, err = tube.Stats()
-			if err == nil {
-				err = e.extractFromTubeStats(stats, addr, tubeName, scrapes)
-			}
 			if err != nil {
 				log.Printf("beanstalkd error: %s", err)
 				errCount++
 				continue
 			}
+			e.extractFromTubeStats(stats, addr, tubeName, scrapes)
 		}
 	}
 
@@ -294,15 +293,93 @@ func (e *Exporter) scrape(scrapes chan<- scrapeResult) {
 	e.duration.Set(float64(time.Now().UnixNano() - start) / 10e9)
 }
 
-func (e *Exporter) extractFromStats(stats map[string]string, addr string, ch chan<- scrapeResult) error {
-	var err error
-	err = nil
-	return nil
+func (e *Exporter) extractFromStats(stats map[string]string, addr string, ch chan<- scrapeResult) {
+	// extract current-jobs-* stats
+	for _, state := range jobState {
+		statsName := currentJobPrefix + state
+		valueStr, ok := stats[statsName]
+		if !ok {
+			continue
+		}
+		value, err := strconv.ParseFloat(valueStr, 64)
+		if err != nil {
+			log.Fatalf(
+				"Error while convert value of metric %s to float, error: %s\n",
+				statsName, err,
+			)
+			continue
+		}
+		ch <- scrapeResult{
+			Name: "current_job", Value: value, Type: gaugeType,
+			Labels: map[string]string{"state": state, "addr": addr},
+		}
+	}
+
+	// extract cmd-* stats
+	for _, cmdName := range serverCmds {
+		statsName := cmdPrefix + cmdName
+		valueStr, ok := stats[statsName]
+		if !ok {
+			continue
+		}
+		value, err := strconv.ParseFloat(valueStr, 64)
+		if err != nil {
+			log.Fatalf(
+				"Error while convert value of metric %s to float, error: %s\n",
+				statsName, err,
+			)
+			continue
+		}
+		ch <- scrapeResult{
+			Name: "cmds_total", Value: value, Type: counterType,
+			Labels: map[string]string{"cmd": cmdName, "addr": addr},
+		}
+	}
 }
 
 func (e *Exporter) extractFromTubeStats(
-		stats map[string]string, addr string, tube string, ch chan<- scrapeResult) error {
-	return nil
+		stats map[string]string, addr string, tube string, ch chan<- scrapeResult) {
+	// extract current-jobs-* stats
+	for _, state := range jobState {
+		statsName := currentJobPrefix + state
+		valueStr, ok := stats[statsName]
+		if !ok {
+			continue
+		}
+		value, err := strconv.ParseFloat(valueStr, 64)
+		if err != nil {
+			log.Fatalf(
+				"Error while convert value of metric %s to float, error: %s\n",
+				statsName, err,
+			)
+			continue
+		}
+		ch <- scrapeResult{
+			Name: "tube_current_job", Value: value, Type: gaugeType,
+			Labels: map[string]string{"state": state, "addr": addr, "tube": tube},
+		}
+	}
+
+	// extract cmd-* stats
+	for _, cmdName := range tubeCmds {
+		statsName := cmdPrefix + cmdName
+		valueStr, ok := stats[statsName]
+		if !ok {
+			continue
+		}
+		value, err := strconv.ParseFloat(valueStr, 64)
+		if err != nil {
+			log.Fatalf(
+				"Error while convert value of metric %s to float, error: %s\n",
+				statsName, err,
+			)
+			continue
+		}
+		ch <- scrapeResult{
+			Name: "tube_cmds_total", Value: value, Type: counterType,
+			Labels: map[string]string{"addr": addr, "tube": tube, "cmd": cmdName},
+		}
+	}
 }
 
 func createGaugeVecFromConfig(namespace string, cfg metricConfig) *prometheus.GaugeVec {

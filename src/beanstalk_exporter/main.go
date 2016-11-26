@@ -14,6 +14,8 @@ import (
 	"strings"
 	//"beanstalk_exporter/exporter"
 	"strconv"
+	"beanstalk_exporter/exporter"
+	"runtime"
 )
 
 const (
@@ -32,13 +34,14 @@ var (
 		"The list of tube names separated by tubes.sep to export metrics")
 	tubeSep = flag.String("tube.sep", ",", "The separator of tube names")
 	listenAddr = flag.String("web.listen-address", ":12300", "The address exporter listens to")
-	metricPath = flag.String("web.telemetry-path", "/metrics", "")
+	metricPath = flag.String("web.telemetry-path", "/metrics", "the path of metric info")
 	showVersion = flag.Bool("version", false, "Print exporter version")
 	showVersionShort = flag.Bool("v", false, "")
 
 	VERSION = "<<< filled by build >>>"
 	BUILD_DATE = "<<< filled by build >>>"
-	COMMIT_SHA1 = "<<< filled by build >>>"
+	REVISION = "<<< filled by build >>>"
+	GIT_BRANCH = "<<< filled by build >>>"
 )
 
 func indexPageHandler(w http.ResponseWriter, req *http.Request) {
@@ -71,8 +74,8 @@ func normalizeAddrs(addrs []string) ([]string, error) {
 func main() {
 	flag.Parse()
 	log.Printf(
-		"Beanstalk Metrics Exporter %s:\n  build date: %s\n  sha1: %s\n\n",
-		VERSION, BUILD_DATE, COMMIT_SHA1,
+		"Beanstalk Metrics Exporter %s:\n  build date: %s\n  revision: %s\n\n",
+		VERSION, BUILD_DATE, REVISION,
 	)
 	if *showVersion || *showVersionShort {
 		os.Exit(0)
@@ -89,28 +92,27 @@ func main() {
 		os.Exit(1)
 	}
 	tubes := strings.Split(*tubeNames, *tubeSep)
-	fmt.Printf("tubes: %s\n", tubes)
+	log.Printf("tubes: %s\n", tubes)
 
-	//e, err := exporter.NewExporter(addrs, *namespace, tubes)
-	//fmt.Println(e)
 
-	cpuTemp := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "cpu_temp_celsius",
-		Help: "Current CPU Temp",
-	})
-	hdFailure := prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "hd_errors_total",
-			Help: "Number of hard disk failure"},
-		[]string{"device"},
-	)
-	prometheus.MustRegister(cpuTemp)
-	prometheus.MustRegister(hdFailure)
-	fmt.Printf("time: %s\n", time.Now().UnixNano())
+	buildInfo := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "beanstalk_exporter_build_info",
+		Help: "",
+	}, []string{"version", "revision", "goversion", "branch", "build_date"})
 
-	cpuTemp.Set(65.3)
-	hdFailure.With(prometheus.Labels{"device": "/dev/sda"}).Inc()
+	prometheus.MustRegister(buildInfo)
+	buildInfo.WithLabelValues(
+		VERSION, REVISION, runtime.Version(), GIT_BRANCH, BUILD_DATE)
+	e, err := exporter.NewExporter(addrs, *namespace, tubes)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+	prometheus.MustRegister(e)
+
+	log.Printf("Providing metrics at %s%s", *listenAddr, *metricPath)
+
 	http.HandleFunc("/", indexPageHandler)
-	http.Handle("/metrics", promhttp.Handler())
+	http.Handle(*metricPath, promhttp.Handler())
 	log.Fatal(http.ListenAndServe(*listenAddr, nil))
 }
