@@ -4,15 +4,14 @@ BIN_DIR := bin
 DIST_DIR := dist
 
 # build version info
-VERSION := v0.1
+# version are filled by CI when building a release.
+VERSION := HEAD
 BUILD_DATE := $(shell date -u "+%FT%T+00:00")
 REVISION := $(shell git rev-parse HEAD)
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
 ### Golang enviroments and build args
 # target info
-GOOS := linux
-GOARCH := amd64
 # Golang enviroments
 GOPATH := $(CURDIR)
 GOBIN := $(CURDIR)/$(BIN_DIR)
@@ -22,8 +21,6 @@ GO_LDFLAGS := -X main.VERSION=$(VERSION) -X main.BUILD_DATE=$(BUILD_DATE) -X \
 
 export GOPATH
 export GOBIN
-export GOOS
-export GOARCH
 
 
 .PHONY: clean clean-dist install build package run lint test
@@ -42,8 +39,9 @@ build:
 	@go build -ldflags "$(GO_LDFLAGS)" -o $(BIN_DIR)/$(PROGRAM_NAME) $(PROGRAM_NAME)
 
 package: install
-	@tar -cvzf $(DIST_DIR)/$(PROGRAM_NAME)-$(VERSION).$(GOOS)-$(GOARCH).tar.gz \
-	$(BIN_DIR)/$(PROGRAM_NAME)
+	# GOOS and GOARCH are filled by ci when building a release.
+	@tar -czf $(DIST_DIR)/$(PROGRAM_NAME)-$(VERSION).$(GOOS)-$(GOARCH).tar.gz \
+	$(BIN_DIR)/$(PROGRAM_NAME) README.md
 	$(MAKE) clean
 
 run:

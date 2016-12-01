@@ -1,0 +1,44 @@
+machine:
+  services:
+    - beanstalkd
+  environment:
+    COVERAGE_PROFILE: "/home/ubuntu/coverage.out"
+    MY_GO_VERSION:    "1.7.1"
+    GLIDE_URL: "https://github.com/Masterminds/glide/releases/download/v0.12.3/glide-v0.12.3-linux-amd64.tar.gz"
+    VERSION: "$CIRCLE_TAG"
+    GOPATH: "/home/ubuntu/beanstalk_exporter"
+    GO_WORKSPACE: "/home/ubuntu/.go_workspace"
+    PATH: "$PATH:$GO_WORKSPACE/bin"
+    PACKAGE_DIR: "~/packages"
+    GO_URL: "https://storage.googleapis.com/golang/go$MY_GO_VERSION.linux-amd64.tar.gz"
+    GO_TARBALL: "$PACKAGE_DIR/go$MY_GO_VERSION.linux-amd64.tar.gz"
+    GLIDE_TARBALL: "$PACKAGE_DIR/glide-v0.12.3-linux-amd64.tar.gz"
+
+dependencies:
+  pre:
+    - mkdir -p $PACKAGE_DIR
+    - if [ ! -e "$GO_TARBALL" ]; then wget $GO_URL -O $GO_TARBALL && sudo rm -rf /usr/local/go/ &&  sudo tar -C /usr/local -xzf $GO_TARBALL; fi
+    - go version
+    - mkdir -p $GO_WORKSPACE/bin
+    - if [ ! -e "$GO_WORKSPACE/bin/glide" ]; then wget $GLIDE_URL -O $GLIDE_TARBALL ; tar --strip-components 1 -xzf $GLIDE_TARBALL -C $GO_WORKSPACE/bin/; fi
+  cache_directories:
+    - ~/packages
+
+test:
+  pre:
+    - go get github.com/mattn/goveralls
+    - go get golang.org/x/tools/cmd/cover
+    - cd src/beanstalk_exporter && glide install
+  override:
+    - go vet beanstalk_exporter
+    - go test -v -cover -race -coverprofile=$COVERAGE_PROFILE ./exporter/
+  post:
+    - if [ -n "$COVERALLS_TOKEN" ]; then /home/ubuntu/.go_workspace/bin/goveralls -coverprofile=$COVERAGE_PROFILE -service=circle-ci -repotoken=$COVERALLS_TOKEN ;  fi
+    - bash <(curl -s https://codecov.io/bash)
+
+deployment:
+  publish:
+    tag: /v.*/
+    commands:
+      - go get github.com/tcnksm/ghr
+

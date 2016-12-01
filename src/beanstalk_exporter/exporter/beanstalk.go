@@ -44,6 +44,11 @@ var (
 		"list-tubes", "list-tube-used", "list-tubes-watched", "pause-tube",
 	}
 	tubeCmds = []string{"delete", "pause-tube"}
+	serverCounterMetric = []string{""}
+	tubeCounterMetrics = []string{""}
+	serverGaugeMetrics = []string{""}
+	tubeGaugeMetrics = []string{""}
+	metricNameMap = map[string]string{}
 	metricConfigs = map[string]metricConfig {
 		"current_job": metricConfig{
 			Name: "current_job",
