@@ -14,13 +14,11 @@ GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 # target info
 # Golang enviroments
 GOPATH := $(CURDIR)
-GOBIN := $(CURDIR)/$(BIN_DIR)
 # golang build args
 GO_LDFLAGS := -X main.VERSION=$(VERSION) -X main.BUILD_DATE=$(BUILD_DATE) -X \
 	main.REVISION=$(REVISION) -X main.GIT_BRANCH=$(GIT_BRANCH)
 
 export GOPATH
-export GOBIN
 
 
 .PHONY: clean clean-dist install build package run lint test

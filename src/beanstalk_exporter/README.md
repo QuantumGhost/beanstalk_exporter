@@ -4,27 +4,15 @@
 
 comes from `stats` command
 
-~~~
+should we export pid, version, id and
+hostname??
+IDK
 
-job-timeouts: 0
-+total-jobs: 1
-+max-job-size: 65535
-+current-tubes: 1
-+current-connections: 2
-+current-producers: 1
-+current-workers: 0
-+current-waiting: 0
-+total-connections: 26
+~~~
 pid: 8
 version: 1.10
 rusage-utime: 0.008000
 rusage-stime: 0.004000
-+uptime: 79896
-+binlog-oldest-index: 0
-+binlog-current-index: 0
-+binlog-records-migrated: 0
-+binlog-records-written: 0
-+binlog-max-size: 10485760
 id: 442c3147ec0f4534
 hostname: 4e9b225dbad3
 ~~~
@@ -32,6 +20,21 @@ hostname: 4e9b225dbad3
 done:
 
 ~~~
+uptime: 79896
+binlog-oldest-index: 0
+binlog-current-index: 0
+binlog-records-migrated: 0
+binlog-records-written: 0
+binlog-max-size: 10485760
+job-timeouts: 0
+total-jobs: 1
+max-job-size: 65535
+current-tubes: 1
+current-connections: 2
+current-producers: 1
+current-workers: 0
+current-waiting: 0
+total-connections: 26
 current-jobs-urgent: 0
 current-jobs-ready: 1
 current-jobs-reserved: 0
@@ -86,19 +89,24 @@ kicks: 0
 
 comes from `stats-tube <name>` command
 
+should we export name????
+no
+should we put `current-*` into label?
+i think no...
+
 ~~~py
 name: default
+~~~
+
+done:
+
+~~~
 total-jobs: 1
 current-using: 2
 current-watching: 2
 current-waiting: 0
 pause: 0
 pause-time-left: 0
-~~~
-
-done:
-
-~~~
 current-jobs-urgent: 0
 current-jobs-ready: 1
 current-jobs-reserved: 0

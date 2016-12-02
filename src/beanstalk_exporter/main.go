@@ -112,6 +112,7 @@ func main() {
 	prometheus.MustRegister(buildInfo)
 	buildInfo.WithLabelValues(
 		VERSION, REVISION, runtime.Version(), GIT_BRANCH, BUILD_DATE)
+	exporter.InitStaticConfigs()
 	e, err := exporter.NewExporter(addrs, *namespace, tubes)
 	if err != nil {
 		log.Fatal(err)
